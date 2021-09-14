@@ -1,6 +1,7 @@
 import http from "http";
 import WebSocket from "ws"; // 임포트 WebSocket
 import express from "express";
+import { parse } from "path";
 
 const app = express();
 
@@ -16,18 +17,23 @@ const server = http.createServer(app);
 
 const wss = new WebSocket.Server({ server });    // express 로 만든 http 서버에 ws 서버 올리기 (같이 사용)
 
-//function handleConnection(socket){  // socket: 서버와 클라이언트가 특정 포트를 통해 양방향 실시간 통신을 할 수 있게 만드는 그릇
-//    console.log(socket);
-//}
-
 const sockets = [];
 
 wss.on("connection", (socket) => {
     sockets.push(socket);
+    socket["nickname"] = "Stranger";  // socket 은 일반적으로 객체라 데이터 저장 가능
     console.log("Connected to Browser");
     socket.on("close", () => console.log("Disconnected from the Browser"));
-    socket.on("message", (message) => {
-        sockets.forEach((aSocket) => aSocket.send(message.toString()));
+    socket.on("message", (msg) => {
+        const message = JSON.parse(msg);
+        switch(message.type){
+            case "new_message":
+                sockets.forEach((aSocket) => aSocket.send(`${socket.nickname}: ${message.payload}`));
+                break;
+            case "nickname":
+               socket["nickname"] = message.payload;
+               break;
+        }
     });
 });    // js btn.addEventListner("click", fn); 유사함
 
